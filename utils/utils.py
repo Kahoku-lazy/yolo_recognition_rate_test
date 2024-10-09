@@ -12,28 +12,38 @@ class U2Tools:
     def __init__(self):
         """ 构造方法 """
         self.d = u2.connect()
-        
-    def switch_game_model(self, game_name):
+
+    def swipe_find(self, text):
 
         width, height = self.d.window_size()
-
         start_x = width * 0.5
         start_y = int(height * 0.5)
         end_x = start_x
         end_y = int(height * 0.3)
-            
-        partial_text = "游戏模型"
-        text_element = self.d.xpath(f"//*[contains(@text, '{partial_text}')]")
-        if text_element.exists:
-            text_element.click()
+
+        element_text =  self.d(text=text)
         for i in range(10):
             time.sleep(0.5)
-            if self.d(text=game_name).exists:
-                self.d(text=game_name).click()
-                break
-            else:
-                self.d.swipe(start_x, start_y, end_x, end_y)
-            
+            if element_text.exists:
+                return element_text
+            self.d.swipe(start_x, start_y, end_x, end_y)
+        
+        return None
+    
+    def click_text(self, text):
+
+        text_element = self.d.xpath(f"//*[contains(@text, '{text}')]")
+        if text_element.exists:
+            text_element.click()
+
+    def switch_game_model(self, game_name):
+
+        self.click_text("游戏模型")
+
+        text_element = self.swipe_find(game_name)
+        if text_element:
+            text_element.click()
+
         time.sleep(0.5)
         self.d(text='确认').click()
 
@@ -172,4 +182,14 @@ def get_images_from_directory(directory, extensions=["jpg", "jpeg", "png", "gif"
         image_files.extend(glob.glob(pattern))
     
     return image_files
-    
+
+import configparser
+
+def read_config(file_path):
+    # 创建 ConfigParser 对象
+    config = configparser.ConfigParser()
+
+    # 读取配置文件
+    config.read(file_path)
+
+    return config

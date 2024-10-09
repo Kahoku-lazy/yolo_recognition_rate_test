@@ -1,98 +1,114 @@
+''' @author: Kahoku 
+    @date: 2024/10/07
+'''
 from pathlib import Path
+import time
+import csv
 
 from utils.utils import *
 from utils.vision_works import *
 
-import configparser
-import time
-import shutil
-import csv
-
-def read_config(file_path):
-    # 创建 ConfigParser 对象
-    config = configparser.ConfigParser()
-
-    # 读取配置文件
-    config.read(file_path)
-
-    return config
-
 class AutoTest:
     
     def __init__(self):
-        self.log = GetLog(log_path=os.path.join(os.getcwd(), "run_log.log"))
-        self._serial_log = GetLog(log_path=os.path.join(os.getcwd(), "serial_log.log"))
 
         self._u2 = U2Tools()
-
         self.config = read_config(os.path.join(os.getcwd(), "config.ini"))
 
-        # serial 
+        self._log_init()
+        self._serila_init()
+        self._save_csv()
+        
+    def _log_init(self):
+
+        path = os.path.join(os.getcwd(), "logs")
+        if not Path(path).exists():
+            Path(path).mkdir(parents=True, exist_ok=True)
+        self.log = GetLog(log_path=os.path.join(os.getcwd(), "logs", "run_log.log"))
+
+    def _serila_init(self):
+
         self._serial = SerialWindows(port=self.config.get("Serial", "port"), 
                                         baudrate=self.config.get("Serial", "baudrate"))
         self._serial.open_serial()
         self._serial.set_buffer_size()
+
+    def _save_csv(self):
         
-        # self._im = os.path.join(os.getcwd(), "screen_images", "screen.png")
-        # if not Path(self._im).parent.exists():
-        #     Path(self._im).parent.mkdir(parents=True, exist_ok=True)
-        
+        self._save_csv = os.path.join(os.getcwd(), "result", "test_result.csv")
+        if not Path(self._save_csv).parent.exists():
+            Path(self._save_csv).parent.mkdir(parents=True, exist_ok=True)
+
+
+    def write_csv_values(self, file_path, values):
+
+        with open(file_path, mode='a+', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            writer.writerow(values)
+
     def main(self):
         
-        self.log.info("start")
+        self.log.info("start test")
         image_path = self.config.get("Image", "path")
         
-        # debug code 
-        for dir in os.listdir(image_path):
-            if dir not in ["Helldivers2"]:
-                continue
-            self.log.info(f"image dir: {dir}")
-            # APP switch models
-            # self._serial.reset_buffer()
+        for folder in os.listdir(image_path):
+
+            self.log.info(f"image folder {folder}")
+
+            self.log.info(f"clean serial buffer data")
+            self._serial.reset_buffer()
             time.sleep(0.5)
-            self._u2.switch_game_model(dir)
+
+            self.log.info(f"app switch {folder} model")
+            self._u2.switch_game_model(folder)
             time.sleep(5)
+
             serila_log = self._serial.get_buffer_data()
             results = find_all_values(serila_log, pattern=r"Model change to (\d+)")
             self.log.info(f"device model id: {results}")
-            
-            images = get_images_from_directory(os.path.join(image_path,dir))
+            images = get_images_from_directory(os.path.join(image_path, folder))
             for i, im in enumerate(images):
-                
-                # show image 
-                self.log.info(f"clean buffer data")
+
+                values = [folder, im, None, None, None]
+
+                self.log.info(f"clean serial buffer data")
                 self._serial.reset_buffer()
                 time.sleep(0.5)
-                self.log.info(f"[{i}/{len(images)}] image: {im}")
+
+                # show image 
+                self.log.info(f"[{i}/{len(images)}]  show image: {im}")
                 open_image_screen(im)
                 
-                # model result 
+                # get serial data
                 serila_log = self._serial.get_buffer_data()
-                self._serial_log.info(serila_log)
                 results = find_all_values(serila_log)
-                light_effect = find_all_values(serila_log, pattern=r'>> send >>\s*(.*)')
-   
-                # model detect error
-                if len(results) > 1 or len(light_effect) > 1:
-                    self.log.error(f"model  reuslt error")
+
+                # devices IOU test
+                change_class = find_all_values(serila_log, pattern=r'Class change to:\s*(\d+),.*')
+                self.log.info(f"Class change to:: {change_class}")
+
+                light_effect = find_all_values(serila_log, pattern=r'>> send >>\s*(.*)\r\r')
+                
+                print(f">>>>[info:] detect result: {folder}, {im}, {change_class}, {results}, {light_effect}")
+
+                # model detect 
+                if results and len(results) == 1 and len(light_effect) == 1:
+                    self.log.info(f"model Detect class: {results}")
+                    l = light_effect[-1].split(" ")[:2][::-1]
+                    light_effect_id = int("".join(l), 16)
+                    self.log.info(f"light effect id: {light_effect_id}")
+                    self.log.info(f"light effect result: {light_effect}")
+                    values = [folder, im, results[-1], light_effect_id, light_effect[-1].rstrip()]
+
+                elif len(results) > 1 or len(light_effect) > 1:
+                    self.log.error(f"model reuslt error")
                     self.log.error(f"model result: {results}")
                     self.log.error(f"light effect result: {light_effect}")
-                    continue
-                
-                # model detect result
-                print([dir, im, results, light_effect])
-                if results:
-                    self.log.info(f"model result: {results}")
-                    self.log.info(f"light effect result: {light_effect}")
-                    with open(f'results/{dir}.csv', mode='a+', newline='', encoding='utf-8') as file:
-                        writer = csv.writer(file)
-                        writer.writerow([dir, im, results[-1], light_effect[-1].strip()])
+
                 else:
                     self.log.error(f"model not found")
-                    with open(f'results/{dir}.csv', mode='a+', newline='', encoding='utf-8') as file:
-                        writer = csv.writer(file)
-                        writer.writerow([dir, im, None, None])
-                    
+
+                self.write_csv_values(self._save_csv, values)   
             self.log.info("\n")
             
 

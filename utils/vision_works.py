@@ -1,12 +1,10 @@
-"""
-问题:
-1. MAC系统 全屏显示图片； 副屏全屏显示图片。 方法 open_image_screen  open_image
-"""
+''' @author: Kahoku 
+    @date: 2024/10/07
+'''
 import cv2
 import os
 from mss import mss, tools
 import pyautogui
-from PIL import Image
 from screeninfo import get_monitors
 
 def calculate_timestamp(frame_number, fps):
@@ -31,15 +29,10 @@ def open_video(video_path):
     参数：
         video_path: 视频路径
     """
-    # video_path = '/Users/kahokuliu/Movies/0630/0630.mp4'  # 替换为你的视频路径
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
         exit()
-
-    # 全屏模式
-    # cv2.namedWindow('Video Frame', cv2.WND_PROP_FULLSCREEN)
-    # cv2.setWindowProperty('Video Frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while True:
         ret, frame = cap.read()
@@ -53,37 +46,6 @@ def open_video(video_path):
     cap.release()
     cv2.destroyAllWindows()
 
-def open_image(image_path, delay_time=1000, keyword=None):
-    """ 打开图片
-    参数:
-        image_path: 图片路径
-        delay_time: 图片窗口持续时间
-        keyword: 单个英文字符串, 强制关闭图片窗口按键
-    """
-    # 读取图片
-    # image_path = '/Users/kahokuliu/Pictures/Kahoku/电脑壁纸图片/C8A3EB12-69ED-4DBE-B47C-4EE8829F3C9E_1_105_c.jpeg'  # 替换为你的图片路径
-    image = cv2.imread(image_path)
-
-    # 检查是否成功读取图片
-    if image is None:
-        exit()
-
-    # 创建一个窗口并设置为全屏模式
-    # cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
-    # cv2.setWindowProperty('Image', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-    cv2.imshow('Image', image)
-    
-    if keyword and is_single_letter(keyword):
-        while True:
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-    else:
-        cv2.waitKey(delay_time)  
-
-    # 关闭窗口
-    cv2.destroyAllWindows()
-
 def open_image_screen(image_path, delay_time=1000):
     """ 副屏中显示图片
     参数:
@@ -91,7 +53,7 @@ def open_image_screen(image_path, delay_time=1000):
         delay_time: 图片窗口持续时间
     """
     image = cv2.imread(image_path)
-    # 获取图片的长和宽
+
     height, width, channels = image.shape
     if image is None:
         exit()
@@ -104,7 +66,7 @@ def open_image_screen(image_path, delay_time=1000):
     # # 创建窗口
     cv2.namedWindow('screen_windows', cv2.WINDOW_NORMAL)
     cv2.moveWindow('screen_windows', secondary_screen_x, secondary_screen_y)
-    cv2.resizeWindow('screen_windows', width=width, height=height)
+    # cv2.resizeWindow('screen_windows', width=width, height=height)
     cv2.setWindowProperty('screen_windows', cv2.WND_PROP_FULLSCREEN ,cv2.WINDOW_FULLSCREEN)
 
     # 显示图片
@@ -154,22 +116,18 @@ def split_video_to_frames(video_path, output_dir):
     cap.release()
     print(f"视频处理完成，总帧数: {total_frames}")
 
-
 def screenshot_images(save_image):
 
     monitors = get_monitors()
-
     if len(monitors) > 1:
         second_monitor = monitors[1]
-
         monitor = {'top': 0, 'left': 1920, 'width': 1920, 'height': 1080}
-
         with mss() as sct:
             screenshot = sct.grab(monitor)
         tools.to_png(screenshot.rgb, screenshot.size, output=save_image)
 
 
-def screennshot_windows(outpyt_dir, flag=False):
+def screennshot_windows(output_dir, flag=False):
     """ 截屏
     参数:
         flag: 是否为副屏截图; False: 主屏截图， True: 副屏截图
@@ -185,5 +143,4 @@ def screennshot_windows(outpyt_dir, flag=False):
     screenshot = pyautogui.screenshot(region=secondary_screen_region)
 
     # 保存截图
-    
-    screenshot.save(outpyt_dir)
+    screenshot.save(output_dir)
