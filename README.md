@@ -1,0 +1,2 @@
+# yolo_recognition_rate_test
+主要测试yolo模型的识别率；使用APP控制设备切换模型，设备抓取显示屏的图像做识别，串口返回结果。
