@@ -13,7 +13,7 @@ class AutoTest:
     def __init__(self):
 
         self._u2 = U2Tools()
-        self.config = read_config(os.path.join(os.getcwd(), "config.ini"))
+        self.config = read_config(os.path.join(os.getcwd(), "config/config.ini"))
 
         self._log_init()
         self._serila_init()
@@ -39,7 +39,6 @@ class AutoTest:
         if not Path(self._save_csv).parent.exists():
             Path(self._save_csv).parent.mkdir(parents=True, exist_ok=True)
 
-
     def write_csv_values(self, file_path, values):
 
         with open(file_path, mode='a+', newline='', encoding='utf-8') as file:
@@ -53,6 +52,13 @@ class AutoTest:
         
         for folder in os.listdir(image_path):
 
+            # if folder in ["Sekiro_ Shadows Die Twice Model", "Magic_ The Gathering Model", "Call of Duty_ Modern Warfare III Model"]:
+            #     folder = folder.replace("_", ":")
+
+            # if folder not in ["Ring_Fit_Adventure"]:
+            #     continue
+            images = get_images_from_directory(os.path.join(image_path, folder))
+
             self.log.info(f"image folder {folder}")
 
             self.log.info(f"clean serial buffer data")
@@ -60,13 +66,15 @@ class AutoTest:
             time.sleep(0.5)
 
             self.log.info(f"app switch {folder} model")
+            if folder in ["Sekiro_ Shadows Die Twice Model", "Magic_ The Gathering Model", "Call of Duty_ Modern Warfare  Model"]:
+                folder = folder.replace("_", ":")
             self._u2.switch_game_model(folder)
             time.sleep(5)
-
             serila_log = self._serial.get_buffer_data()
             results = find_all_values(serila_log, pattern=r"Model change to (\d+)")
+
             self.log.info(f"device model id: {results}")
-            images = get_images_from_directory(os.path.join(image_path, folder))
+            
             for i, im in enumerate(images):
 
                 values = [folder, im, None, None, None]

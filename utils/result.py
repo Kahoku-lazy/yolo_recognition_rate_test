@@ -1,4 +1,5 @@
 import pandas as pd 
+
 from pathlib import Path
 import os
 import shutil
@@ -16,13 +17,17 @@ df["light_check_result"] = "None"
 groupby = df.groupby("game_name")
 
 # expect  result 
-config_path = r"D:\auto_tools\github\yolo_recognition_rate_test\debug\game_config_info.csv"
+config_path = r"D:\auto_tools\github\yolo_recognition_rate_test\config\game_config.csv"
 game_config = pd.read_csv(config_path)
 
 for game_name, actual_df in groupby:
-    print(game_name)
+    print(f">>>[info:] game name: {game_name}")
+    # if game_name in ["Deceive_inc", "Final_Fantasy_VII_Rebirth", "Mario_Kart8",
+    #                 "Monster_Hunter_Rise", "Ring_Fit_Adventure", "streetFighter6", "Hearthstone Model"]:
+    #     continue
     expect_df = game_config[game_config.game_name == game_name]
     for index, row in actual_df.iterrows():
+        print(f">>>[info:] image name: {row.image_path}")
         # expect result
         expect_model_id = Path(row["image_path"]).stem.split("-")[0]
         expect_label_name = expect_df[expect_df.label_id == int(expect_model_id)]["label_name"].to_list()[0]
@@ -36,18 +41,18 @@ for game_name, actual_df in groupby:
         if int(expect_model_id) == model_id:
             df.loc[index, "model_check_result"] = "pass"
             pass_path = f"images_pass/{game_name}"
-            if not os.path.exists(pass_path):
-                os.makedirs(pass_path)
-            shutil.copy(row["image_path"], pass_path)
+            # if not os.path.exists(pass_path):
+            #     os.makedirs(pass_path)
+            # shutil.copy(row["image_path"], pass_path)
 
         else:
             df.loc[index, "model_check_result"]  = "fail"
             error_path = f"images_error/{game_name}"
-            if not os.path.exists(error_path):
-                os.makedirs(error_path)
-            shutil.copy(row["image_path"], error_path)
+            # if not os.path.exists(error_path):
+            #     os.makedirs(error_path)
+            # shutil.copy(row["image_path"], error_path)
 
-        if light_effect_id == light_effect_id:
+        if expect_light_id  == light_effect_id:
             df.loc[index, "light_check_result"] = "pass"
         else:
             df.loc[index, "light_check_result"] = "fail"
